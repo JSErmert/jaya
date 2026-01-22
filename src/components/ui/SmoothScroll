@@ -1,0 +1,61 @@
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+
+export default function SmoothScroll() {
+  const location = useLocation();
+  const dataRef = useRef({
+    ease: 0.08,
+    current: 0,
+    previous: 0,
+    rounded: 0,
+  });
+
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    dataRef.current.current = 0;
+    dataRef.current.previous = 0;
+    dataRef.current.rounded = 0;
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const wrapper = document.getElementById('smooth-wrapper');
+    const content = document.getElementById('smooth-content');
+    
+    if (!wrapper || !content) return;
+
+    // Set body height to enable scrolling
+    const setBodyHeight = () => {
+      document.body.style.height = `${content.getBoundingClientRect().height}px`;
+    };
+    setBodyHeight();
+
+    // Smooth scroll animation
+    const smoothScroll = () => {
+      dataRef.current.current = window.scrollY;
+      dataRef.current.previous += (dataRef.current.current - dataRef.current.previous) * dataRef.current.ease;
+      dataRef.current.rounded = Math.round(dataRef.current.previous * 100) / 100;
+
+      // Apply transform
+      content.style.transform = `translateY(-${dataRef.current.rounded}px)`;
+
+      requestAnimationFrame(smoothScroll);
+    };
+
+    // Start animation
+    const rafId = requestAnimationFrame(smoothScroll);
+
+    // Recalculate on resize
+    const resizeObserver = new ResizeObserver(setBodyHeight);
+    resizeObserver.observe(content);
+
+    // Cleanup
+    return () => {
+      cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+      document.body.style.height = '';
+    };
+  }, [location.pathname]);
+
+  return null;
+}
